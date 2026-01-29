@@ -1,99 +1,107 @@
-document.getElementById("analizza").addEventListener("click", analizza);
+document.addEventListener("DOMContentLoaded", function () {
 
-const paroleUrgenti = [
-  "urgente", "attenzione", "immediato", "subito",
-  "bloccato", "sospeso", "limitato", "scade"
-];
+  document.getElementById("analizza").addEventListener("click", analizza);
+  document.getElementById("pulisci").addEventListener("click", pulisci);
 
-const paroleLink = [
-  "clicca", "link", "accedi", "verifica", "conferma"
-];
+  const paroleUrgenti = [
+    "urgente", "attenzione", "immediato", "subito",
+    "bloccato", "sospeso", "limitato", "scade",
+    "approvazione", "allert"
+  ];
 
-const datiSensibili = [
-  "iban", "password", "codice", "otp",
-  "pin", "pagamento", "credito", "debito"
-];
+  const paroleLink = [
+    "clicca", "link", "accedi", "verifica", "conferma", "chiama"
+  ];
 
-const entiFinti = [
-  "poste", "inps", "banca", "paypal",
-  "amazon", "spid", "intesa", "unicredit",
-  "corriere", "dhl", "ups", "gls"
-];
+  const datiSensibili = [
+    "iban", "password", "codice", "otp",
+    "pin", "pagamento", "credito", "debito",
+    "trasferimento", "bonifico"
+  ];
 
-const paroleNormali = [
-    "ciao", "ok", "grazie", "domani", "stasera", "alle", "appuntamento", "fammi sapere", "👍", "😂", "🤣"
-];
+  const entiFinti = [
+    "poste", "posteinfo", "inps", "banca", "paypal",
+    "amazon", "spid", "intesa", "unicredit",
+    "corriere", "dhl", "ups", "gls"
+  ];
 
+  const paroleNormali = [
+    "ciao", "ok", "grazie", "domani", "stasera",
+    "appuntamento", "fammi sapere", "👍", "😂", "🤣"
+  ];
 
-function analizza() {
-  let testo = document.getElementById("sms").value.toLowerCase();
-  let rischio = 0;
-  let motivi = [];
+  function analizza() {
+    let testo = document.getElementById("sms").value.toLowerCase();
+    let rischio = 0;
+    let motivi = [];
 
-  paroleNormali.forEach(parola => {
-    if (testo.includes(parola)) {
-        rischio -= 5;
-    }
-  });
-  
-  if (rischio < 0) rischio = 0;
+    paroleNormali.forEach(parola => {
+      if (testo.includes(parola)) rischio -= 5;
+    });
 
+    if (rischio < 0) rischio = 0;
 
+    paroleUrgenti.forEach(parola => {
+      if (testo.includes(parola)) {
+        rischio += 10;
+        motivi.push(`Linguaggio urgente (“${parola}”)`);
+      }
+    });
 
-  paroleUrgenti.forEach(parola => {
-    if (testo.includes(parola)) {
-      rischio += 10;
-      motivi.push(`Uso di linguaggio urgente (“${parola}”)`);
-    }
-  });
+    paroleLink.forEach(parola => {
+      if (testo.includes(parola)) {
+        rischio += 15;
+        motivi.push(`Invito ad agire (“${parola}”)`);
+      }
+    });
 
-  paroleLink.forEach(parola => {
-    if (testo.includes(parola)) {
-      rischio += 15;
-      motivi.push(`Invito ad agire (“${parola}”)`);
-    }
-  });
+    datiSensibili.forEach(parola => {
+      if (testo.includes(parola)) {
+        rischio += 25;
+        motivi.push(`Richiesta di dati sensibili (“${parola}”)`);
+      }
+    });
 
-  datiSensibili.forEach(parola => {
-    if (testo.includes(parola)) {
+    entiFinti.forEach(ente => {
+      if (testo.includes(ente)) {
+        rischio += 20;
+        motivi.push(`Possibile ente imitato (“${ente}”)`);
+      }
+    });
+
+    if (testo.includes("http")) {
       rischio += 25;
-      motivi.push(`Richiesta di dati sensibili (“${parola}”)`);
+      motivi.push("Presenza di un link nel messaggio");
     }
-  });
 
-  entiFinti.forEach(ente => {
-    if (testo.includes(ente)) {
-      rischio += 20;
-      motivi.push(`Possibile ente imitato (“${ente}”)`);
-    }
-  });
+    if (rischio > 100) rischio = 100;
 
-  if (testo.includes("http")) {
-    rischio += 25;
-    motivi.push("Presenza di un link nel messaggio");
+    let colore = rischio < 31 ? "green" : rischio < 61 ? "orange" : "red";
+
+    let giudizio =
+      rischio < 31
+        ? "🟢 Il messaggio sembra tranquillo."
+        : rischio < 61
+        ? "🟠 Il messaggio presenta elementi sospetti."
+        : "🔴 Questo messaggio ha un alto rischio di truffa.";
+
+    document.getElementById("risultato").innerHTML = `
+      <h3 style="color:${colore}">
+        Rischio truffa: ${rischio}%
+      </h3>
+      <p>${giudizio}</p>
+      <p><strong>Motivi rilevati:</strong><br>
+        ${motivi.length ? motivi.join("<br>") : "Nessun segnale evidente"}
+      </p>
+      <p><strong>Consiglio:</strong><br>
+        Nessun ente ufficiale chiede dati, codici o pagamenti via SMS.
+      </p>
+    `;
   }
 
-  if (rischio > 100) rischio = 100;
+  function pulisci() {
+    document.getElementById("sms").value = "";
+    document.getElementById("risultato").innerHTML = "";
+  }
 
-  let colore = rischio < 31 ? "green" : rischio < 61 ? "orange" : "red";
-
-  let giudizio =
-    rischio < 31
-      ? "🟢 Il messaggio sembra tranquillo."
-      : rischio < 61
-      ? "🟠 Il messaggio presenta elementi sospetti."
-      : "🔴 Questo messaggio ha un alto rischio di truffa.";
-
-  document.getElementById("risultato").innerHTML = `
-    <h3 style="color:${colore}">
-      Rischio truffa: ${rischio}%
-    </h3>
-    <p>${giudizio}</p>
-    <p><strong>Motivi rilevati:</strong><br>
-      ${motivi.length ? motivi.join("<br>") : "Nessun segnale evidente"}
-    </p>
-    <p><strong>Consiglio:</strong><br>
-      Nessun ente ufficiale chiede dati personali, codici o pagamenti via SMS.
-    </p>
-  `;
-}
+});
